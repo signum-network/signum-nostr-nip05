@@ -7,6 +7,7 @@
  *
  * Learn more at https://developers.cloudflare.com/workers/
  */
+import { URIResolver } from "@signumjs/standards";
 
 export interface Env {
   // Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
@@ -22,12 +23,78 @@ export interface Env {
   // MY_SERVICE: Fetcher;
 }
 
+const provideLedger = (nodeHost: string) => ({
+  alias: {
+    getAliasByName: async (aliasName: string) => {
+      const response = await fetch(
+        `${nodeHost}/api?requestType=getAlias&aliasName=${aliasName}`
+      );
+      return response.json();
+    },
+  },
+});
+
+const ResponseOptions = {
+  headers: {
+    "content-type": "application/json;charset=UTF-8",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
+    "Access-Control-Max-Age": "86400",
+  },
+};
+
+const NodeHost = "https://europe.signum.network";
+
 export default {
   async fetch(
     request: Request,
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
-    return new Response("Hello World, Bob");
+    const searchString = request.url.substring(request.url.indexOf("?"));
+    const params = new URLSearchParams(searchString);
+    const alias = params.get("name");
+
+    if (!alias) {
+      return new Response(null, {
+        ...ResponseOptions,
+        status: 400,
+        statusText: "Parameter 'name' must be provided",
+      });
+    }
+    try {
+      // TODO: with 3.7 live we need to use the :nostr tld
+      const uri = `signum://${alias}/xnostr`;
+      const ledger = provideLedger(NodeHost);
+      // @ts-ignore
+      const resolver = new URIResolver(ledger);
+      const pubkey = (await resolver.resolve(uri)) as string;
+      if (!pubkey) {
+        return new Response(null, {
+          ...ResponseOptions,
+          status: 404,
+          statusText: `Alias does not have field [xnostr]`,
+        });
+      }
+      const responseJson = JSON.stringify({
+        names: {
+          [alias]: pubkey,
+        },
+        // TODO: relays
+      });
+      return new Response(responseJson, ResponseOptions);
+    } catch (e: any) {
+      if (e.errorCode === 4) {
+        return new Response(null, {
+          ...ResponseOptions,
+          status: 404,
+          // statusText: `Alias ${} not found`
+        });
+      }
+      return new Response(null, {
+        ...ResponseOptions,
+        status: 500,
+      });
+    }
   },
 };

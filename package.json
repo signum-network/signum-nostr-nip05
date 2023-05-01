@@ -35,5 +35,8 @@
   },
   "lint-staged": {
     "**/*": "prettier --write --ignore-unknown"
+  },
+  "dependencies": {
+    "@signumjs/standards": "^1.0.0-rc.69"
   }
 }
