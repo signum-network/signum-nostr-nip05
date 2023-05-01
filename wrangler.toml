@@ -1,0 +1,3 @@
+name = "signum-nostr-nip05"
+main = "src/index.ts"
+compatibility_date = "2023-05-01"
