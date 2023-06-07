@@ -30,27 +30,43 @@ The client then looks under `https://foodood.com/.well-known/nostr.json?name=joh
 }
 ```
 
-For tech savvy people this is straightforward but my Mom would struggle. (well, my Mom would not be the target audience of nostr - but this is another story)
+For tech-savvy people this is straightforward but my Mom would struggle. (well, my Mom would not be the target audience of nostr - but this is another story)
 
 # How it works with Signum?
 
-> This requires 3.7.0 of Node version to be live, as we will make use of Alias namespaces
+Easiest way, if you don't have an Alias yet: https://nostrum.vercel.app/
+
+> The dApp requires that you have a nostr account imported/created in the [XT Wallet](https://signum.network/wallet)
+
+### Manual Process
 
 You acquire an Alias in the namespace `nostr` - which costs you 50 SIGNA/year (about 8 US cent at the time of writing) for example
 on [SignumSwap](https://signumswap.com/alias) or in the [Phoenix Wallet](https://phoenix-wallet.rocks). Then you edit this Alias and
-add your (hexadecimal!!!) public nostr key. That's all. After the transaction is settled in the network (after about 240 seconds)
+add your (hexadecimal!!!) public nostr key and optional some relays. That's all!
+
+The JSON payload has to look like this:
+
+```json
+{
+  "vs": 1,
+  "xnsrel": ["wss://relay.damus.io", "wss://relay.nostr.band"],
+  "xnostr": "<your nostr public key IN HEXADECIMAL FORM>"
+}
+```
+
+After the transaction is settled in the network (after about 240 seconds)
 you can verify you nostr account as usual.
 
 # But what's the tech magic behind this?!
 
-The Signum Network allows users to own updatable data containers, called Aliases. All done in a decentralize manner
+The Signum Network allows users to own updatable data containers, called Aliases. All done in a decentralized manner
 with no intermediaries like ICANN or banks. These Aliases can be updated by the owner (and even traded) whenever (s)he needs.
-With the help of the [Structured Data Format (SRC44)](https://github.com/signum-network/SIPs/blob/master/SIP/sip-44.md) an user
-adds a nostr public key to th pre-defined field `xnostr`.
+With the help of the [Structured Data Format (SRC44)](https://github.com/signum-network/SIPs/blob/master/SIP/sip-44.md) a user
+adds a nostr public key to th pre-defined field `xnostr` (and `xnsrel` for relays).
 The Signum Network runs a service that delegates `NIP05` addresses like `johndoe@signum.network` to the Alias `johndoe` and
 looks for the `xnostr` field. If existent a `NIP05` compliant content is being returned to the requesting client.
 
-Once you own that Alias, no one can take it away from you: Your keys, Your Alias
+Once you own that Alias, no one can take it away from you: **Your keys, Your Alias**
 
 # Development
 
