@@ -7,7 +7,16 @@
  *
  * Learn more at https://developers.cloudflare.com/workers/
  */
-import { URIResolver } from "@signumjs/standards";
+import { DescriptorDataClient, URIResolver } from "@signumjs/standards";
+
+interface NIP05ResponsePayload {
+  names: {
+    [key: string]: string;
+  };
+  relays?: {
+    [key: string]: string[];
+  };
+}
 
 export interface Env {
   // Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
@@ -25,9 +34,9 @@ export interface Env {
 
 const provideLedger = (nodeHost: string) => ({
   alias: {
-    getAliasByName: async (aliasName: string) => {
+    getAliasByName: async (aliasName: string, tld: string) => {
       const response = await fetch(
-        `${nodeHost}/api?requestType=getAlias&aliasName=${aliasName}`
+        `${nodeHost}/api?requestType=getAlias&aliasName=${aliasName}&tld=${tld}`
       );
       return response.json();
     },
@@ -63,37 +72,37 @@ export default {
       });
     }
     try {
-      // TODO: with 3.7 live we need to use the :nostr tld
-      const uri = `signum://${alias}/xnostr`;
       const ledger = provideLedger(NodeHost);
       // @ts-ignore
-      const resolver = new URIResolver(ledger);
-      const pubkey = (await resolver.resolve(uri)) as string;
-      if (!pubkey) {
+      const client = new DescriptorDataClient(ledger);
+      const { xnostr, xnsrel } = await client.getFromAlias(`${alias}:nostr`);
+
+      if (!xnostr) {
         return new Response(null, {
           ...ResponseOptions,
           status: 404,
-          statusText: `Alias does not have field [xnostr]`,
+          statusText: `No nostr pubkey found - Alias requires field [xnostr]`,
         });
       }
-      const responseJson = JSON.stringify({
+
+      const nostrPubKey = xnostr as string;
+      const nostrRelays = xnsrel as string[];
+      let response: NIP05ResponsePayload = {
         names: {
-          [alias]: pubkey,
+          [alias]: nostrPubKey,
         },
-        // TODO: relays
-      });
+      };
+      if (nostrRelays) {
+        response.relays = {
+          [nostrPubKey]: nostrRelays,
+        };
+      }
+      const responseJson = JSON.stringify(response);
       return new Response(responseJson, ResponseOptions);
     } catch (e: any) {
-      if (e.errorCode === 4) {
-        return new Response(null, {
-          ...ResponseOptions,
-          status: 404,
-          // statusText: `Alias ${} not found`
-        });
-      }
       return new Response(null, {
         ...ResponseOptions,
-        status: 500,
+        status: 404,
       });
     }
   },

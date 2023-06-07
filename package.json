@@ -37,6 +37,6 @@
     "**/*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
-    "@signumjs/standards": "^1.0.0-rc.69"
+    "@signumjs/standards": "^1.0.0-rc.70"
   }
 }

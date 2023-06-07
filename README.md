@@ -23,6 +23,9 @@ The client then looks under `https://foodood.com/.well-known/nostr.json?name=joh
 {
   "names": {
     "johndoe": "<mypublicknostrkey>"
+  },
+  "relays": {
+    "<mypublicknostrkey>": ["wss://relay1.nostr.com", "wss://relay2.nostr.com"]
   }
 }
 ```
